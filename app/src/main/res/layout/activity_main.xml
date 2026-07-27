@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <WebView
+        android:id="@+id/webview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/empty_state_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingBottom="20dp"
+            android:text="Buka PDF di Google Drive, tap menu (⋮) lalu Copy link, kemudian tempel di sini:"
+            android:textSize="16sp" />
+
+        <EditText
+            android:id="@+id/link_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Tempel link Google Drive PDF di sini"
+            android:inputType="textUri"
+            android:autofillHints="" />
+
+        <Button
+            android:id="@+id/open_link_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Buka" />
+
+    </LinearLayout>
+
+</FrameLayout>
