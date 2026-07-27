@@ -1,8 +1,11 @@
 const hasChromeIdentity = typeof chrome !== 'undefined' && chrome.identity && chrome.runtime && chrome.runtime.getURL;
 
+// Query param busts stale browser/Worker caches when this file's pdf.js version changes.
+const PDFJS_VENDOR_VERSION = '3.11.174';
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = hasChromeIdentity
   ? chrome.runtime.getURL('vendor/pdf.worker.min.js')
-  : 'vendor/pdf.worker.min.js';
+  : `vendor/pdf.worker.min.js?v=${PDFJS_VENDOR_VERSION}`;
 
 // Non-extension hosts (Android WebView, plain web app) call this after sign-in
 // to hand over an OAuth access token.
