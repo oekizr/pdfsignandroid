@@ -4,10 +4,12 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = hasChromeIdentity
   ? chrome.runtime.getURL('vendor/pdf.worker.min.js')
   : 'vendor/pdf.worker.min.js';
 
-// Native Android host calls this after sign-in to hand over an OAuth access token.
-window.setAndroidToken = function setAndroidToken(token) {
-  window.__androidToken = token;
+// Non-extension hosts (Android WebView, plain web app) call this after sign-in
+// to hand over an OAuth access token.
+window.setExternalToken = function setExternalToken(token) {
+  window.__externalToken = token;
 };
+window.setAndroidToken = window.setExternalToken;
 
 const RENDER_SCALE = 1.4;
 
@@ -27,8 +29,8 @@ function setStatus(text) {
 }
 
 function getAuthToken(interactive) {
-  if (window.__androidToken) {
-    return Promise.resolve(window.__androidToken);
+  if (window.__externalToken) {
+    return Promise.resolve(window.__externalToken);
   }
   if (typeof AndroidTokenBridge !== 'undefined' && AndroidTokenBridge.getToken) {
     const bridgeToken = AndroidTokenBridge.getToken();
@@ -52,7 +54,7 @@ function getAuthToken(interactive) {
 function removeCachedToken(token) {
   return new Promise((resolve) => {
     if (!hasChromeIdentity) {
-      window.__androidToken = null;
+      window.__externalToken = null;
       resolve();
       return;
     }
@@ -89,24 +91,28 @@ async function renderPdf(bytesForRender) {
   const pdf = await pdfjsLib.getDocument({ data: bytesForRender }).promise;
 
   for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: RENDER_SCALE });
+    try {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: RENDER_SCALE });
 
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-    await page.render({ canvasContext: ctx, viewport }).promise;
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport }).promise;
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'page-wrapper';
-    wrapper.style.width = `${viewport.width}px`;
-    wrapper.style.height = `${viewport.height}px`;
-    wrapper.dataset.pageIndex = String(i - 1);
-    wrapper.appendChild(canvas);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'page-wrapper';
+      wrapper.style.width = `${viewport.width}px`;
+      wrapper.style.height = `${viewport.height}px`;
+      wrapper.dataset.pageIndex = String(i - 1);
+      wrapper.appendChild(canvas);
 
-    viewerEl.appendChild(wrapper);
-    pageWrappers.push(wrapper);
+      viewerEl.appendChild(wrapper);
+      pageWrappers.push(wrapper);
+    } catch (err) {
+      throw new Error(`halaman ${i}: ${err.message}`);
+    }
   }
 }
 
@@ -564,9 +570,9 @@ async function handleSave() {
 
 saveBtnEl.addEventListener('click', handleSave);
 
-async function init() {
+async function init(overrideFileId) {
   const params = new URLSearchParams(location.search);
-  fileId = params.get('fileId');
+  fileId = overrideFileId || params.get('fileId');
   if (!fileId) {
     setStatus('fileId tidak ditemukan pada URL.');
     return;
@@ -599,7 +605,13 @@ async function init() {
   if (name) document.title = `${name} - Drive PDF Signer`;
 
   setStatus('Merender PDF...');
-  await renderPdf(originalPdfBytes.slice().buffer);
+  try {
+    await renderPdf(originalPdfBytes.slice().buffer);
+  } catch (err) {
+    console.error(err);
+    setStatus(`Gagal merender PDF: ${err.message}`);
+    return;
+  }
   populatePageSelect();
   setStatus(name ? `${name} — siap diedit` : 'Siap. Tambahkan gambar/tanda tangan lalu simpan.');
 }
