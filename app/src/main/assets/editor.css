@@ -2,10 +2,6 @@
   box-sizing: border-box;
 }
 
-html, body {
-  touch-action: manipulation;
-}
-
 body {
   margin: 0;
   font-family: Roboto, Arial, sans-serif;
@@ -281,15 +277,11 @@ body {
   gap: 8px;
 }
 
-.zoom-btn,
-.rail-divider {
-  display: none;
-}
-
 /* Touchscreens: collapse the horizontal toolbar into a floating icon rail
    anchored to the visual viewport (position: fixed, no ancestor transform),
-   so it holds its size/position even though we've blocked native pinch-zoom
-   and drive zooming ourselves via setZoom(). */
+   left over the document. renderPdf() fits the first page to the screen
+   width on load so the rail's size holds steady at open; native pinch-zoom
+   is left alone for viewing. */
 @media (pointer: coarse) and (max-width: 820px) {
   #toolbar {
     padding: 8px 14px;
@@ -324,32 +316,5 @@ body {
     top: 50%;
     left: calc(100% + 10px);
     transform: translateY(-50%);
-  }
-
-  .rail-divider {
-    display: block;
-    width: 20px;
-    height: 1px;
-    background: rgba(255, 255, 255, 0.18);
-    margin: 2px auto;
-  }
-
-  .zoom-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border: none;
-    font-size: 18px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .zoom-btn:active {
-    background: rgba(255, 255, 255, 0.22);
   }
 }
