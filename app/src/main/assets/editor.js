@@ -124,16 +124,25 @@ async function renderPdf(bytesForRender, fitToScreenWidth) {
     RENDER_SCALE = Math.max(MOBILE_FIT_MIN_SCALE, Math.min(fitScale, MOBILE_FIT_MAX_SCALE));
   }
 
+  // Render at native device pixel density so text/lines stay crisp on
+  // high-DPI (Retina) screens — without this, canvas.width/height match CSS
+  // pixels 1:1 and the browser upscales the bitmap to fill physical pixels,
+  // which is what was showing up as soft/pixelated on phones.
+  const outputScale = window.devicePixelRatio || 1;
+
   for (let i = 1; i <= pdf.numPages; i++) {
     try {
       const page = await pdf.getPage(i);
       const viewport = page.getViewport({ scale: RENDER_SCALE });
 
       const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
       const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
+      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+      await page.render({ canvasContext: ctx, viewport, transform }).promise;
 
       const wrapper = document.createElement('div');
       wrapper.className = 'page-wrapper';
