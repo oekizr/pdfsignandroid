@@ -14,12 +14,7 @@ window.setExternalToken = function setExternalToken(token) {
 };
 window.setAndroidToken = window.setExternalToken;
 
-// Mobile-only clamp for the initial fit-to-width render (see renderPdf).
-const MOBILE_FIT_MIN_SCALE = 0.5;
-const MOBILE_FIT_MAX_SCALE = 2.5;
-const MOBILE_VIEWPORT_MAX_WIDTH = 820;
-
-let RENDER_SCALE = 1.4;
+const RENDER_SCALE = 1.4;
 
 const statusEl = document.getElementById('status');
 const viewerEl = document.getElementById('viewer');
@@ -97,16 +92,6 @@ async function renderPdf(bytesForRender) {
   pageWrappers = [];
 
   const pdf = await pdfjsLib.getDocument({ data: bytesForRender }).promise;
-
-  // On phones, fit the first page to the screen width so the document never
-  // renders wider than the viewport — an oversized page forces the browser
-  // to auto-shrink the whole visual viewport (rail included) to fit it.
-  if (window.innerWidth <= MOBILE_VIEWPORT_MAX_WIDTH) {
-    const firstPage = await pdf.getPage(1);
-    const naturalWidth = firstPage.getViewport({ scale: 1 }).width;
-    const fitScale = (window.innerWidth - 24) / naturalWidth;
-    RENDER_SCALE = Math.max(MOBILE_FIT_MIN_SCALE, Math.min(fitScale, MOBILE_FIT_MAX_SCALE));
-  }
 
   for (let i = 1; i <= pdf.numPages; i++) {
     try {

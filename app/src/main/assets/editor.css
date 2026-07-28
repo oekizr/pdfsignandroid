@@ -279,9 +279,7 @@ body {
 
 /* Touchscreens: collapse the horizontal toolbar into a floating icon rail
    anchored to the visual viewport (position: fixed, no ancestor transform),
-   left over the document. renderPdf() fits the first page to the screen
-   width on load so the rail's size holds steady at open; native pinch-zoom
-   is left alone for viewing. */
+   left over the document. Native pinch-zoom is left alone for viewing. */
 @media (pointer: coarse) and (max-width: 820px) {
   #toolbar {
     padding: 8px 14px;
@@ -316,5 +314,19 @@ body {
     top: 50%;
     left: calc(100% + 10px);
     transform: translateY(-50%);
+  }
+
+  /* Pages still render at full RENDER_SCALE resolution (crisp on pinch-zoom) —
+     only the on-screen display size is capped here, so the page never lays
+     out wider than the phone and forces a native shrink-to-fit reflow. */
+  .page-wrapper {
+    width: auto !important;
+    height: auto !important;
+    max-width: 100%;
+  }
+
+  .page-wrapper canvas {
+    width: 100%;
+    height: auto;
   }
 }
