@@ -21,6 +21,13 @@ document.addEventListener('touchmove', (e) => {
   if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
 
+// Safari recognizes pinch as its own non-standard gesture events, ahead of
+// (and separately from) touchmove — without blocking these specifically it
+// still zooms the whole page, rail included, even with the listener above.
+['gesturestart', 'gesturechange', 'gestureend'].forEach((type) => {
+  document.addEventListener(type, (e) => e.preventDefault());
+});
+
 const MIN_RENDER_SCALE = 0.6;
 const MAX_RENDER_SCALE = 3.0;
 let RENDER_SCALE = 1.4;
