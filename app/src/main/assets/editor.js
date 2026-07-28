@@ -14,13 +14,24 @@ window.setExternalToken = function setExternalToken(token) {
 };
 window.setAndroidToken = window.setExternalToken;
 
-const RENDER_SCALE = 1.4;
+// Backstop for iOS Safari, which ignores maximum-scale/user-scalable in the
+// viewport meta tag: block the native two-finger pinch gesture at the touch
+// level so the page can never be scaled by anything other than setZoom().
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+const MIN_RENDER_SCALE = 0.6;
+const MAX_RENDER_SCALE = 3.0;
+let RENDER_SCALE = 1.4;
 
 const statusEl = document.getElementById('status');
 const viewerEl = document.getElementById('viewer');
 const pageSelectEl = document.getElementById('page-select');
 const imageInputEl = document.getElementById('image-input');
 const saveBtnEl = document.getElementById('save-btn');
+const zoomInBtnEl = document.getElementById('zoom-in-btn');
+const zoomOutBtnEl = document.getElementById('zoom-out-btn');
 
 let fileId = null;
 let originalPdfBytes = null;
@@ -128,6 +139,42 @@ function populatePageSelect() {
     pageSelectEl.appendChild(opt);
   });
 }
+
+async function setZoom(newScale) {
+  const clamped = Math.min(MAX_RENDER_SCALE, Math.max(MIN_RENDER_SCALE, newScale));
+  if (clamped === RENDER_SCALE || !originalPdfBytes) return;
+
+  // Pages get destroyed and re-rendered at the new scale, so overlay pixel
+  // positions (which are relative to their page-wrapper) need to be carried
+  // over proportionally rather than reset.
+  const factor = clamped / RENDER_SCALE;
+  const savedGeom = overlays.map((overlay) => ({
+    overlay,
+    pageIndex: Number(overlay.pageWrapper.dataset.pageIndex),
+    left: overlay.el.offsetLeft * factor,
+    top: overlay.el.offsetTop * factor,
+    width: overlay.el.offsetWidth * factor,
+    height: overlay.el.offsetHeight * factor
+  }));
+  overlays.forEach((overlay) => overlay.el.remove());
+
+  RENDER_SCALE = clamped;
+  await renderPdf(originalPdfBytes.slice().buffer);
+  populatePageSelect();
+
+  savedGeom.forEach(({ overlay, pageIndex, left, top, width, height }) => {
+    const wrapper = pageWrappers[pageIndex] || pageWrappers[0];
+    overlay.pageWrapper = wrapper;
+    overlay.el.style.left = `${left}px`;
+    overlay.el.style.top = `${top}px`;
+    overlay.el.style.width = `${width}px`;
+    overlay.el.style.height = `${height}px`;
+    wrapper.appendChild(overlay.el);
+  });
+}
+
+zoomInBtnEl?.addEventListener('click', () => setZoom(RENDER_SCALE + 0.2));
+zoomOutBtnEl?.addEventListener('click', () => setZoom(RENDER_SCALE - 0.2));
 
 function getToolbarHeight() {
   return document.getElementById('toolbar').offsetHeight;

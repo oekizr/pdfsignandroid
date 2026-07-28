@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+html, body {
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   font-family: Roboto, Arial, sans-serif;
@@ -275,4 +279,77 @@ body {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.zoom-btn,
+.rail-divider {
+  display: none;
+}
+
+/* Touchscreens: collapse the horizontal toolbar into a floating icon rail
+   anchored to the visual viewport (position: fixed, no ancestor transform),
+   so it holds its size/position even though we've blocked native pinch-zoom
+   and drive zooming ourselves via setZoom(). */
+@media (pointer: coarse) and (max-width: 820px) {
+  #toolbar {
+    padding: 8px 14px;
+  }
+
+  #page-select {
+    display: none;
+  }
+
+  #toolbar-actions {
+    position: fixed;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(35, 37, 39, 0.92);
+    backdrop-filter: blur(6px);
+    border-radius: 20px;
+    padding: 8px 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    z-index: 500;
+  }
+
+  .toolbar-icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+  }
+
+  .toolbar-icon-btn::after {
+    top: 50%;
+    left: calc(100% + 10px);
+    transform: translateY(-50%);
+  }
+
+  .rail-divider {
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.18);
+    margin: 2px auto;
+  }
+
+  .zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .zoom-btn:active {
+    background: rgba(255, 255, 255, 0.22);
+  }
 }
