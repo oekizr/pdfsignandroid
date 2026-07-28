@@ -14,13 +14,34 @@ window.setExternalToken = function setExternalToken(token) {
 };
 window.setAndroidToken = window.setExternalToken;
 
-const RENDER_SCALE = 1.4;
+// Block native pinch/double-tap zoom outright. On iOS Safari this is the
+// only reliable way — the viewport meta tag's maximum-scale/user-scalable
+// is ignored, and even position: fixed elements visually scale with a
+// pinch gesture since it's a whole-screen magnification, not a reflow.
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+['gesturestart', 'gesturechange', 'gestureend'].forEach((type) => {
+  document.addEventListener(type, (e) => e.preventDefault());
+});
+
+const MOBILE_VIEWPORT_MAX_WIDTH = 820;
+const MOBILE_FIT_MIN_SCALE = 0.5;
+const MOBILE_FIT_MAX_SCALE = 2.5;
+const ZOOM_STEP = 0.25;
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 4.0;
+
+let RENDER_SCALE = 1.4;
 
 const statusEl = document.getElementById('status');
 const viewerEl = document.getElementById('viewer');
 const pageSelectEl = document.getElementById('page-select');
 const imageInputEl = document.getElementById('image-input');
 const saveBtnEl = document.getElementById('save-btn');
+const zoomInBtnEl = document.getElementById('zoom-in-btn');
+const zoomOutBtnEl = document.getElementById('zoom-out-btn');
 
 let fileId = null;
 let originalPdfBytes = null;
@@ -87,11 +108,21 @@ async function fetchFileName(id, token) {
   }
 }
 
-async function renderPdf(bytesForRender) {
+async function renderPdf(bytesForRender, fitToScreenWidth) {
   viewerEl.innerHTML = '';
   pageWrappers = [];
 
   const pdf = await pdfjsLib.getDocument({ data: bytesForRender }).promise;
+
+  // Only recompute on the very first render, so the document opens fitting
+  // the phone's width. Subsequent renders (from the +/- zoom buttons) reuse
+  // whatever RENDER_SCALE the button click already set.
+  if (fitToScreenWidth && window.innerWidth <= MOBILE_VIEWPORT_MAX_WIDTH) {
+    const firstPage = await pdf.getPage(1);
+    const naturalWidth = firstPage.getViewport({ scale: 1 }).width;
+    const fitScale = (window.innerWidth - 24) / naturalWidth;
+    RENDER_SCALE = Math.max(MOBILE_FIT_MIN_SCALE, Math.min(fitScale, MOBILE_FIT_MAX_SCALE));
+  }
 
   for (let i = 1; i <= pdf.numPages; i++) {
     try {
@@ -127,6 +158,46 @@ function populatePageSelect() {
     opt.textContent = `Halaman ${idx + 1}`;
     pageSelectEl.appendChild(opt);
   });
+}
+
+async function setZoom(newScale) {
+  const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newScale));
+  if (clamped === RENDER_SCALE || !originalPdfBytes) return;
+
+  // Pages get destroyed and re-rendered at the new scale, so overlay pixel
+  // positions (relative to their page-wrapper) need to be carried over
+  // proportionally rather than reset.
+  const factor = clamped / RENDER_SCALE;
+  const savedGeom = overlays.map((overlay) => ({
+    overlay,
+    pageIndex: Number(overlay.pageWrapper.dataset.pageIndex),
+    left: overlay.el.offsetLeft * factor,
+    top: overlay.el.offsetTop * factor,
+    width: overlay.el.offsetWidth * factor,
+    height: overlay.el.offsetHeight * factor
+  }));
+  overlays.forEach((overlay) => overlay.el.remove());
+
+  RENDER_SCALE = clamped;
+  await renderPdf(originalPdfBytes.slice().buffer, false);
+  populatePageSelect();
+
+  savedGeom.forEach(({ overlay, pageIndex, left, top, width, height }) => {
+    const wrapper = pageWrappers[pageIndex] || pageWrappers[0];
+    overlay.pageWrapper = wrapper;
+    overlay.el.style.left = `${left}px`;
+    overlay.el.style.top = `${top}px`;
+    overlay.el.style.width = `${width}px`;
+    overlay.el.style.height = `${height}px`;
+    wrapper.appendChild(overlay.el);
+  });
+}
+
+if (zoomInBtnEl) {
+  zoomInBtnEl.addEventListener('click', () => setZoom(RENDER_SCALE + ZOOM_STEP));
+}
+if (zoomOutBtnEl) {
+  zoomOutBtnEl.addEventListener('click', () => setZoom(RENDER_SCALE - ZOOM_STEP));
 }
 
 function getToolbarHeight() {
@@ -609,7 +680,7 @@ async function init(overrideFileId) {
 
   setStatus('Merender PDF...');
   try {
-    await renderPdf(originalPdfBytes.slice().buffer);
+    await renderPdf(originalPdfBytes.slice().buffer, true);
   } catch (err) {
     console.error(err);
     setStatus(`Gagal merender PDF: ${err.message}`);

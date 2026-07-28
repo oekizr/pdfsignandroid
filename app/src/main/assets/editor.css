@@ -277,6 +277,11 @@ body {
   gap: 8px;
 }
 
+.zoom-btn,
+.rail-divider {
+  display: none;
+}
+
 /* Touchscreens: collapse the horizontal toolbar into a floating icon rail
    anchored to the visual viewport (position: fixed, no ancestor transform),
    left over the document. Native pinch-zoom is left alone for viewing. */
@@ -316,17 +321,37 @@ body {
     transform: translateY(-50%);
   }
 
-  /* Pages still render at full RENDER_SCALE resolution (crisp on pinch-zoom) —
-     only the on-screen display size is capped here, so the page never lays
-     out wider than the phone and forces a native shrink-to-fit reflow. */
-  .page-wrapper {
-    width: auto !important;
-    height: auto !important;
-    max-width: 100%;
+  .rail-divider {
+    display: block;
+    width: 20px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.18);
+    margin: 2px auto;
   }
 
-  .page-wrapper canvas {
-    width: 100%;
-    height: auto;
+  .zoom-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: none;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .zoom-btn:active {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  /* Zooming in via the rail intentionally makes pages wider than the
+     screen — scroll sideways to pan instead of the browser forcing a
+     whole-viewport shrink-to-fit (native zoom is already blocked). */
+  #viewer {
+    overflow-x: auto;
   }
 }
