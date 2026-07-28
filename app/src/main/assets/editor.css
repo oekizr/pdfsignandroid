@@ -38,7 +38,7 @@ body {
   border: none;
 }
 
-.btn, #save-btn {
+.btn {
   background: #1a73e8;
   color: #fff;
   border: none;
@@ -48,13 +48,65 @@ body {
   cursor: pointer;
 }
 
-.btn:hover, #save-btn:hover:not(:disabled) {
+.btn:hover {
   background: #1765cc;
 }
 
-#save-btn:disabled {
+.toolbar-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toolbar-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.toolbar-icon-btn:hover {
+  background: #1765cc;
+}
+
+.toolbar-icon-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #202124;
+  color: #fff;
+  padding: 5px 9px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 200;
+}
+
+.toolbar-icon-btn:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+.toolbar-icon-btn-save:disabled {
   background: #5f6368;
   cursor: not-allowed;
+}
+
+.toolbar-icon-btn-save:disabled:hover {
+  background: #5f6368;
 }
 
 #viewer {
