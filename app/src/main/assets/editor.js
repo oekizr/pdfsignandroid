@@ -447,8 +447,29 @@ function getPadPoint(e) {
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
+// The canvas's CSS display size is set dynamically (see sizeSignPad) to fit
+// the modal on any screen; these track it so drawing math and clearRect stay
+// in that same coordinate space rather than the raw (dpr-multiplied) pixel
+// buffer.
+let signPadCssWidth = 520;
+let signPadCssHeight = 220;
+
+function sizeSignPad() {
+  const modalBox = signPadEl.closest('.modal-box');
+  const available = modalBox ? modalBox.clientWidth - 32 : 520;
+  signPadCssWidth = Math.max(240, Math.min(520, available));
+  signPadCssHeight = Math.round(signPadCssWidth * (220 / 520));
+
+  const dpr = window.devicePixelRatio || 1;
+  signPadEl.style.width = `${signPadCssWidth}px`;
+  signPadEl.style.height = `${signPadCssHeight}px`;
+  signPadEl.width = Math.round(signPadCssWidth * dpr);
+  signPadEl.height = Math.round(signPadCssHeight * dpr);
+  signCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 function clearSignPad() {
-  signCtx.clearRect(0, 0, signPadEl.width, signPadEl.height);
+  signCtx.clearRect(0, 0, signPadCssWidth, signPadCssHeight);
   hasInk = false;
 }
 
@@ -498,8 +519,9 @@ signPadEl.addEventListener('pointerleave', () => { if (isDrawing) endStroke(); }
 document.getElementById('sign-clear-btn').addEventListener('click', clearSignPad);
 
 document.getElementById('draw-sign-btn').addEventListener('click', () => {
-  clearSignPad();
   signModalEl.classList.remove('hidden');
+  sizeSignPad();
+  clearSignPad();
 });
 
 function closeSignModal() {
